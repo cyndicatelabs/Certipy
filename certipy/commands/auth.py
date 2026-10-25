@@ -14,6 +14,7 @@ import argparse
 import base64
 import datetime
 import sys
+from time import sleep
 from random import getrandbits
 from typing import Any, Optional, Union
 
@@ -641,6 +642,9 @@ class Authenticate:
 
         logging.info("Got TGT")
 
+        # Add sleep to avoid detection from MDI / Elastic
+        sleep(30)
+
         # Process AS-REP
         as_rep = decoder.decode(tgt, asn1Spec=AS_REP())[0]
 
@@ -780,12 +784,12 @@ class Authenticate:
 
                 # Set KDC options for U2U
                 opts = [
-                    e2i(constants.KDCOptions.forwardable),
-                    e2i(constants.KDCOptions.renewable),
+                    # e2i(constants.KDCOptions.forwardable),
+                    # e2i(constants.KDCOptions.renewable),
                     e2i(constants.KDCOptions.canonicalize),
                     e2i(constants.KDCOptions.enc_tkt_in_skey),  # This enables U2U
-                    e2i(constants.KDCOptions.forwardable),
-                    e2i(constants.KDCOptions.renewable_ok),
+                    # e2i(constants.KDCOptions.forwardable),
+                    # e2i(constants.KDCOptions.renewable_ok),
                 ]
                 req_body["kdc-options"] = constants.encodeFlags(opts)
 
