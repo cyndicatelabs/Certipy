@@ -116,6 +116,18 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> Tuple[str, Callable
         default=5,
         type=int,
     )
+    conn_group.add_argument(
+        "--opsec-sleep",
+        dest="NT_HASH_SLEEP",
+        action="store",
+        metavar="seconds",
+        help=(
+            "Delay before the U2U NT hash request for detection-control testing. For MDI you might want to set this to at least 3600 seconds. "
+            "(default: 60 seconds)"
+        ),
+        default=60,
+        type=int,
+    )
 
     # Authentication options
     auth_group = subparser.add_argument_group("authentication options")

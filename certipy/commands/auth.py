@@ -194,6 +194,7 @@ class Authenticate:
         print: bool = False,
         kirbi: bool = False,
         ldap_shell: bool = False,
+        NT_HASH_SLEEP: int = 60,
         **kwargs,  # type: ignore
     ):
         """
@@ -212,6 +213,7 @@ class Authenticate:
             print: Print ticket information
             kirbi: Save credential cache in Kirbi format
             ldap_shell: Launch interactive LDAP shell after authentication
+            NT_HASH_SLEEP: Delay before the U2U NT hash request, in seconds
             ldap_port: LDAP port (default: 389 for ldap, 636 for ldaps)
             ldap_scheme: LDAP scheme (ldap or ldaps)
             ldap_user_dn: LDAP user distinguished name
@@ -230,6 +232,9 @@ class Authenticate:
         self.print = print
         self.kirbi = kirbi
         self.ldap_shell = ldap_shell
+        if NT_HASH_SLEEP < 0:
+            raise ValueError("--opsec-sleep must be zero or greater")
+        self.NT_HASH_SLEEP = NT_HASH_SLEEP
         self.kwargs = kwargs
 
         # These will be populated during authentication
@@ -642,9 +647,6 @@ class Authenticate:
 
         logging.info("Got TGT")
 
-        # Add sleep to avoid detection from MDI / Elastic
-        sleep(30)
-
         # Process AS-REP
         as_rep = decoder.decode(tgt, asn1Spec=AS_REP())[0]
 
@@ -726,6 +728,8 @@ class Authenticate:
 
         # Extract NT hash if requested
         if not self.no_hash:
+            logging.info("Waiting %d seconds before requesting the NT hash for %r",self.NT_HASH_SLEEP,username)
+            sleep(self.NT_HASH_SLEEP)
             logging.info(f"Trying to retrieve NT hash for {username!r}")
 
             try:
@@ -784,12 +788,13 @@ class Authenticate:
 
                 # Set KDC options for U2U
                 opts = [
-                    # e2i(constants.KDCOptions.forwardable),
-                    # e2i(constants.KDCOptions.renewable),
+                    # The usual 0x40810010 options, plus enc-tkt-in-skey (0x8)
+                    # required for U2U, produce 0x40810018.
+                    e2i(constants.KDCOptions.forwardable),
+                    e2i(constants.KDCOptions.renewable),
                     e2i(constants.KDCOptions.canonicalize),
                     e2i(constants.KDCOptions.enc_tkt_in_skey),  # This enables U2U
-                    # e2i(constants.KDCOptions.forwardable),
-                    # e2i(constants.KDCOptions.renewable_ok),
+                    e2i(constants.KDCOptions.renewable_ok),
                 ]
                 req_body["kdc-options"] = constants.encodeFlags(opts)
 

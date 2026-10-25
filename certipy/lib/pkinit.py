@@ -244,7 +244,10 @@ def build_pkinit_as_req(
 
     # Build KDC-REQ-BODY
     kdc_req_body_data = {
-        "kdc-options": KDCOptions({"forwardable", "renewable", "renewable-ok"}),
+        # 0x40810010: forwardable | renewable | canonicalize | renewable-ok
+        "kdc-options": KDCOptions(
+            {"forwardable", "renewable", "canonicalize", "renewable-ok"}
+        ),
         "cname": PrincipalName(
             {"name-type": NameType.PRINCIPAL, "name-string": [username]}
         ),
